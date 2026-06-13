@@ -67,8 +67,12 @@ router.get('/:id', authMiddleware, (req: AuthRequest, res: Response) => {
     const questions = db.prepare('SELECT * FROM questions WHERE exam_id = ? ORDER BY sort_order').all(req.params.id) as QuestionRow[];
 
     const attempts = db.prepare(`
-      SELECT * FROM exam_attempts WHERE exam_id = ? AND user_id = ? ORDER BY attempt_number
-    `).all(req.params.id, req.user!.id) as { attempt_number: number; score: number; passed: number; submitted_at: string; answers: string }[];
+      SELECT ea.*, COALESCE(ea.total_score_snapshot, e.total_score) as total_score, COALESCE(ea.pass_score_snapshot, e.pass_score) as pass_score
+      FROM exam_attempts ea
+      JOIN exams e ON ea.exam_id = e.id
+      WHERE ea.exam_id = ? AND ea.user_id = ?
+      ORDER BY ea.attempt_number
+    `).all(req.params.id, req.user!.id) as { attempt_number: number; score: number; passed: number; submitted_at: string; answers: string; total_score: number; pass_score: number }[];
 
     res.json({
       ...exam,
@@ -191,7 +195,7 @@ router.post('/:id/submit', authMiddleware, (req: AuthRequest, res: Response) => 
     const passed = totalScore >= exam.pass_score;
     const attemptNumber = attempts.cnt + 1;
 
-    db.prepare('INSERT INTO exam_attempts (exam_id, user_id, score, answers, passed, attempt_number, submitted_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)').run(examId, req.user!.id, totalScore, JSON.stringify(answers), passed ? 1 : 0, attemptNumber);
+    db.prepare('INSERT INTO exam_attempts (exam_id, user_id, score, answers, passed, attempt_number, submitted_at, total_score_snapshot, pass_score_snapshot) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?)').run(examId, req.user!.id, totalScore, JSON.stringify(answers), passed ? 1 : 0, attemptNumber, exam.total_score, exam.pass_score);
 
     res.json({
       score: totalScore,
@@ -213,8 +217,9 @@ router.post('/:id/submit', authMiddleware, (req: AuthRequest, res: Response) => 
 router.get('/:id/attempts', authMiddleware, adminOnly, (req: AuthRequest, res: Response) => {
   try {
     const attempts = db.prepare(`
-      SELECT ea.*, u.name, u.username, u.department
+      SELECT ea.*, COALESCE(ea.total_score_snapshot, e.total_score) as total_score, COALESCE(ea.pass_score_snapshot, e.pass_score) as pass_score, u.name, u.username, u.department
       FROM exam_attempts ea
+      JOIN exams e ON ea.exam_id = e.id
       JOIN users u ON ea.user_id = u.id
       WHERE ea.exam_id = ?
       ORDER BY ea.submitted_at DESC

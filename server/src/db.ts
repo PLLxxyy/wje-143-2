@@ -85,9 +85,18 @@ db.exec(`
     attempt_number INTEGER NOT NULL DEFAULT 1,
     started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     submitted_at DATETIME,
+    total_score_snapshot INTEGER,
+    pass_score_snapshot INTEGER,
     FOREIGN KEY (exam_id) REFERENCES exams(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
 `);
+
+try {
+  db.prepare('ALTER TABLE exam_attempts ADD COLUMN total_score_snapshot INTEGER').run();
+} catch (e) {}
+try {
+  db.prepare('ALTER TABLE exam_attempts ADD COLUMN pass_score_snapshot INTEGER').run();
+} catch (e) {}
 
 export default db;

@@ -16,6 +16,8 @@ interface Attempt {
   username: string;
   exam_title: string;
   score: number;
+  total_score: number;
+  pass_score: number;
   passed: number;
   attempt_number: number;
   submitted_at: string;
@@ -132,14 +134,15 @@ export default function AdminDashboard() {
           <div className="table-wrap">
             <table>
               <thead>
-                <tr><th>学员</th><th>考试</th><th>成绩</th><th>状态</th><th>第几次</th><th>提交时间</th></tr>
+                <tr><th>学员</th><th>考试</th><th>成绩</th><th>及格线</th><th>状态</th><th>第几次</th><th>提交时间</th></tr>
               </thead>
               <tbody>
                 {data.recentAttempts.map(a => (
                   <tr key={a.id}>
                     <td>{a.name}（{a.username}）</td>
                     <td>{a.exam_title}</td>
-                    <td style={{ fontWeight: 600 }}>{a.score}</td>
+                    <td style={{ fontWeight: 600, color: a.passed ? '#2d6a4f' : '#dc3545' }}>{a.score} / {a.total_score}</td>
+                    <td>{a.pass_score}</td>
                     <td><span className={`badge ${a.passed ? 'badge-success' : 'badge-danger'}`}>{a.passed ? '通过' : '未通过'}</span></td>
                     <td>第 {a.attempt_number} 次</td>
                     <td>{a.submitted_at}</td>

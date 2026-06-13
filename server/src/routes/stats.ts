@@ -44,7 +44,7 @@ router.get('/dashboard', authMiddleware, adminOnly, (req: AuthRequest, res: Resp
 
     // Recent attempts
     const recentAttempts = db.prepare(`
-      SELECT ea.*, u.name, u.username, e.title as exam_title
+      SELECT ea.*, COALESCE(ea.total_score_snapshot, e.total_score) as total_score, COALESCE(ea.pass_score_snapshot, e.pass_score) as pass_score, u.name, u.username, e.title as exam_title
       FROM exam_attempts ea
       JOIN users u ON ea.user_id = u.id
       JOIN exams e ON ea.exam_id = e.id
@@ -81,7 +81,7 @@ router.get('/profile', authMiddleware, (req: AuthRequest, res: Response) => {
     `).all(req.user!.id);
 
     const examHistory = db.prepare(`
-      SELECT ea.*, e.title as exam_title, c.title as course_title, e.total_score, e.pass_score
+      SELECT ea.*, e.title as exam_title, c.title as course_title, COALESCE(ea.total_score_snapshot, e.total_score) as total_score, COALESCE(ea.pass_score_snapshot, e.pass_score) as pass_score
       FROM exam_attempts ea
       JOIN exams e ON ea.exam_id = e.id
       LEFT JOIN courses c ON e.course_id = c.id
