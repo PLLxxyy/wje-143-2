@@ -99,4 +99,14 @@ try {
   db.prepare('ALTER TABLE exam_attempts ADD COLUMN pass_score_snapshot INTEGER').run();
 } catch (e) {}
 
+try {
+  const migrateStmt = db.prepare(`
+    UPDATE exam_attempts
+    SET total_score_snapshot = (SELECT total_score FROM exams WHERE id = exam_attempts.exam_id),
+        pass_score_snapshot  = (SELECT pass_score  FROM exams WHERE id = exam_attempts.exam_id)
+    WHERE total_score_snapshot IS NULL OR pass_score_snapshot IS NULL
+  `);
+  migrateStmt.run();
+} catch (e) {}
+
 export default db;
