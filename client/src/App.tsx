@@ -108,6 +108,7 @@ export default function App() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/course/create" element={<AdminCourseCreate />} />
           <Route path="/admin/exam/create" element={<AdminExamCreate />} />
+          <Route path="/admin/exam/:id/edit" element={<AdminExamCreate />} />
           <Route path="*" element={<CourseList user={user} />} />
         </Routes>
       </main>

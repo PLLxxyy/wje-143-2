@@ -75,9 +75,17 @@ export default function ExamList({ user }: Props) {
                 </div>
                 <div>
                   {isAdmin ? (
-                    <div style={{ textAlign: 'right', fontSize: '13px', color: '#888' }}>
-                      <div>{exam.attempt_count} 人次参考</div>
-                      <div>通过 {exam.pass_count} 人</div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '13px', color: '#888', marginBottom: '8px' }}>
+                        <div>{exam.attempt_count} 人次参考</div>
+                        <div>通过 {exam.pass_count} 人</div>
+                      </div>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => navigate(`/admin/exam/${exam.id}/edit`)}
+                      >
+                        编辑
+                      </button>
                     </div>
                   ) : (
                     <>

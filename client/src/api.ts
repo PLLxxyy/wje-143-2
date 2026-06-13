@@ -48,6 +48,7 @@ export const api = {
   getExams: () => request('/exams'),
   getExam: (id: number) => request(`/exams/${id}`),
   createExam: (data: { course_id: number; title: string; total_score: number; pass_score: number; time_limit: number; questions: Array<{ type: string; content: string; options?: string[]; answer: string; explanation?: string; score: number }> }) => request('/exams', { method: 'POST', body: data }),
+  updateExam: (id: number, data: { course_id: number; title: string; total_score: number; pass_score: number; time_limit: number; questions: Array<{ type: string; content: string; options?: string[]; answer: string; explanation?: string; score: number }> }) => request(`/exams/${id}`, { method: 'PUT', body: data }),
   submitExam: (id: number, answers: Record<number, string>) => request(`/exams/${id}/submit`, { method: 'POST', body: { answers } }),
 
   getDashboard: () => request('/stats/dashboard'),

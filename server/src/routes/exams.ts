@@ -89,6 +89,41 @@ router.get('/:id', authMiddleware, (req: AuthRequest, res: Response) => {
   }
 });
 
+// Update exam (admin)
+router.put('/:id', authMiddleware, adminOnly, (req: AuthRequest, res: Response) => {
+  try {
+    const examId = req.params.id;
+    const { course_id, title, total_score, pass_score, time_limit, questions } = req.body;
+
+    const existingExam = db.prepare('SELECT id FROM exams WHERE id = ?').get(examId);
+    if (!existingExam) {
+      res.status(404).json({ error: '考试不存在' });
+      return;
+    }
+
+    if (!course_id || !title || !questions || questions.length === 0) {
+      res.status(400).json({ error: '请填写完整考试信息并添加题目' });
+      return;
+    }
+
+    db.prepare('UPDATE exams SET course_id = ?, title = ?, total_score = ?, pass_score = ?, time_limit = ? WHERE id = ?')
+      .run(course_id, title, total_score || 100, pass_score || 60, time_limit || 60, examId);
+
+    db.prepare('DELETE FROM questions WHERE exam_id = ?').run(examId);
+
+    const insertQuestion = db.prepare('INSERT INTO questions (exam_id, type, content, options, answer, explanation, score, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+
+    questions.forEach((q: { type: string; content: string; options?: string[]; answer: string; explanation?: string; score?: number }, idx: number) => {
+      insertQuestion.run(examId, q.type, q.content, q.options ? JSON.stringify(q.options) : null, q.answer, q.explanation || '', q.score || 5, idx + 1);
+    });
+
+    res.json({ id: examId, message: '考试更新成功' });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : '更新考试失败';
+    res.status(500).json({ error: message });
+  }
+});
+
 // Create exam (admin)
 router.post('/', authMiddleware, adminOnly, (req: AuthRequest, res: Response) => {
   try {

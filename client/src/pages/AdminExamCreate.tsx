@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { api } from '../api';
 
 interface Course {
@@ -18,15 +18,23 @@ interface QuestionForm {
 
 export default function AdminExamCreate() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEdit = !!id;
+  const examId = id ? Number(id) : 0;
+
   const [courses, setCourses] = useState<Course[]>([]);
   const [form, setForm] = useState({ course_id: 0, title: '', total_score: 100, pass_score: 60, time_limit: 60 });
   const [questions, setQuestions] = useState<QuestionForm[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingExam, setLoadingExam] = useState(false);
 
   useEffect(() => {
     loadCourses();
-  }, []);
+    if (isEdit) {
+      loadExam();
+    }
+  }, [isEdit]);
 
   const loadCourses = async () => {
     try {
@@ -35,6 +43,32 @@ export default function AdminExamCreate() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const loadExam = async () => {
+    setLoadingExam(true);
+    try {
+      const data = await api.getExam(examId) as Record<string, unknown>;
+      setForm({
+        course_id: Number(data.course_id),
+        title: String(data.title),
+        total_score: Number(data.total_score),
+        pass_score: Number(data.pass_score),
+        time_limit: Number(data.time_limit),
+      });
+      const qs = data.questions as Array<Record<string, unknown>>;
+      setQuestions(qs.map(q => ({
+        type: q.type as 'choice' | 'judge',
+        content: String(q.content),
+        options: q.options ? (q.options as string[]) : ['', '', '', ''],
+        answer: String(q.answer),
+        explanation: String(q.explanation || ''),
+        score: Number(q.score),
+      })));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : '加载考试详情失败');
+    }
+    setLoadingExam(false);
   };
 
   const addQuestion = () => {
@@ -79,19 +113,33 @@ export default function AdminExamCreate() {
 
     setLoading(true);
     try {
-      await api.createExam({ ...form, questions });
-      alert('考试创建成功');
+      if (isEdit) {
+        await api.updateExam(examId, { ...form, questions });
+        alert('考试更新成功');
+      } else {
+        await api.createExam({ ...form, questions });
+        alert('考试创建成功');
+      }
       navigate('/exams');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '创建失败');
+      setError(err instanceof Error ? err.message : (isEdit ? '更新失败' : '创建失败'));
     }
     setLoading(false);
   };
 
+  if (loadingExam) {
+    return (
+      <>
+        <Link to="/exams" style={{ fontSize: '14px', marginBottom: '16px', display: 'inline-block' }}>&larr; 返回考试列表</Link>
+        <div>加载中...</div>
+      </>
+    );
+  }
+
   return (
     <>
       <Link to="/exams" style={{ fontSize: '14px', marginBottom: '16px', display: 'inline-block' }}>&larr; 返回考试列表</Link>
-      <h2 className="page-title">创建考试</h2>
+      <h2 className="page-title">{isEdit ? '编辑考试' : '创建考试'}</h2>
 
       <div className="card" style={{ maxWidth: '800px' }}>
         {error && <div className="alert alert-error">{error}</div>}
@@ -195,7 +243,7 @@ export default function AdminExamCreate() {
       {questions.length > 0 && (
         <div style={{ marginTop: '24px' }}>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>
-            {loading ? '创建中...' : '提交创建考试'}
+            {loading ? (isEdit ? '更新中...' : '创建中...') : (isEdit ? '保存修改' : '提交创建考试')}
           </button>
         </div>
       )}
